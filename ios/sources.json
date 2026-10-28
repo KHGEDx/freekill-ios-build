@@ -1,0 +1,14 @@
+{
+  "lua-5.4.8.tar.gz": {
+    "url": "https://www.lua.org/ftp/lua-5.4.8.tar.gz",
+    "sha256": "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae"
+  },
+  "openssl-3.5.4.tar.gz": {
+    "url": "https://codeload.github.com/openssl/openssl/tar.gz/refs/tags/openssl-3.5.4",
+    "sha256": "758b69feed5787dc12d34b0eb29b60d3c9d73d5a64760c62d93a6d26b344d65d"
+  },
+  "libgit2-1.9.0.tar.gz": {
+    "url": "https://codeload.github.com/libgit2/libgit2/tar.gz/refs/tags/v1.9.0",
+    "sha256": "75b27d4d6df44bd34e2f70663cfd998f5ec41e680e1e593238bbe517a84c7ed2"
+  }
+}

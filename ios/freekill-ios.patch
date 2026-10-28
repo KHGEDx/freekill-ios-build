@@ -1,0 +1,147 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -101,6 +101,10 @@
+ endif ()
+ 
+ add_subdirectory(src)
++if(IOS)
++  find_package(Qt6 6.8 REQUIRED COMPONENTS Svg)
++  include("${PROJECT_SOURCE_DIR}/ios/FreeKillIOS.cmake")
++endif()
+ 
+ if (DEFINED FK_TESTS)
+ enable_testing()
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -144,7 +144,11 @@
+   if (NOT ANDROID)
+     set(SOLOUD_ROOT "${PROJECT_SOURCE_DIR}/thirdparty/soloud")
+     # SoLoud 编为动态库（soloud.dll），避免把整个引擎塞进 FreeKill.exe 增大体积
+-    add_library(soloud SHARED
++    set(FK_SOLOUD_TYPE SHARED)
++    if(IOS)
++      set(FK_SOLOUD_TYPE STATIC)
++    endif()
++    add_library(soloud ${FK_SOLOUD_TYPE}
+       "${SOLOUD_ROOT}/src/core/soloud.cpp"
+       "${SOLOUD_ROOT}/src/core/soloud_audiosource.cpp"
+       "${SOLOUD_ROOT}/src/core/soloud_bus.cpp"
+@@ -239,6 +243,16 @@
+     QT_ANDROID_EXTRA_LIBS "${LUA_LIB};${SQLITE3_LIB};${CRYPTO_LIB};${SSL_LIB};${GIT_LIB};${SSH_LIB}"
+   )
+   list(REMOVE_ITEM QT_LIB Qt6::QuickControls2)
++elseif (IOS)
++  if(NOT FK_IOS_DEPS OR NOT EXISTS "${FK_IOS_DEPS}/lib/liblua.a")
++    message(FATAL_ERROR "Build the arm64 iOS dependencies and pass FK_IOS_DEPS")
++  endif()
++  set(LUA_LIB "${FK_IOS_DEPS}/lib/liblua.a")
++  set(SQLITE3_LIB sqlite3)
++  set(CRYPTO_LIB "${FK_IOS_DEPS}/lib/libcrypto.a")
++  set(SSL_LIB "${FK_IOS_DEPS}/lib/libssl.a")
++  set(GIT_LIB "${FK_IOS_DEPS}/lib/libgit2.a")
++  list(REMOVE_ITEM QT_LIB Qt6::OpenGL)
+ elseif (APPLE)
+   set(LUA_LIB ${LUA_LIBRARIES})
+   set(SQLITE3_LIB sqlite3)
+--- a/src/pch.h
++++ b/src/pch.h
+@@ -16,7 +16,7 @@
+ 
+ #define QT_ENABLE_STRICT_MODE_UP_TO 0x060200
+ 
+-#if !defined (Q_OS_ANDROID)
++#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
+ #define DESKTOP_BUILD
+ #endif
+ 
+--- a/src/freekill.cpp
++++ b/src/freekill.cpp
+@@ -31,6 +31,10 @@
+ #endif
+ 
+ #include <QTextStream>
++#include <cstdio>
++#ifdef Q_OS_IOS
++#include "runtime.h"
++#endif
+ 
+ #if defined(Q_OS_ANDROID)
+ static bool copyPath(const QString &srcFilePath, const QString &tgtFilePath) {
+@@ -239,6 +243,13 @@
+ 
+ // FreeKill 的程序主入口。整个程序就是从这里开始执行的。
+ int freekill_main(int argc, char *argv[]) {
++#ifdef Q_OS_IOS
++  QString iosError;
++  if (!prepareIosData(&iosError)) {
++    std::fprintf(stderr, "FreeKill iOS startup failed: %s\n", qPrintable(iosError));
++    return 1;
++  }
++#endif
+   // 初始化一下各种杂项信息
+   QThread::currentThread()->setObjectName("Main");
+ 
+@@ -474,7 +485,9 @@
+   engine->rootContext()->setContextProperty("Debugging", debugging);
+ 
+   QString system;
+-#if defined(Q_OS_ANDROID)
++#if defined(Q_OS_IOS)
++  system = QStringLiteral("iOS");
++#elif defined(Q_OS_ANDROID)
+   system = QStringLiteral("Android");
+ #elif defined(Q_OS_WIN32)
+   system = QStringLiteral("Win");
+--- a/Fk/main.qml
++++ b/Fk/main.qml
+@@ -28,7 +28,7 @@
+ 
+     onScaleChanged: Config.winScale = scale;
+     onConfLoaded: {
+-      if (Cpp.os != "Android") {
++      if (Cpp.os != "Android" && Cpp.os != "iOS") {
+         root.x = Config.winX;
+         root.y = Config.winY;
+         root.width = Config.winWidth;
+--- a/LunarLtk/Pages/GeneralDetailPage.qml
++++ b/LunarLtk/Pages/GeneralDetailPage.qml
+@@ -10,7 +10,6 @@
+ import LunarLtk.Components
+ 
+ // 神秘bug 在import Fk之前引进这个会把Config单例爆破
+-import QtQuick.Controls.FluentWinUI3 as Win
+ 
+ Item {
+   id: root
+--- a/Fk/Pages/Common/Init.qml
++++ b/Fk/Pages/Common/Init.qml
+@@ -151,7 +151,7 @@
+         color: "blue"
+         font.pixelSize: 24
+         font.underline: true
+-        visible: OS === "Android"
++        visible: OS === "Android" || OS === "iOS"
+ 
+         W.TapHandler {
+           onTapped: {
+--- a/src/ui/qmlbackend.cpp
++++ b/src/ui/qmlbackend.cpp
+@@ -572,11 +572,16 @@
+ }
+ 
+ void QmlBackend::askFixResource() {
+-#if defined(Q_OS_ANDROID) || defined(Q_OS_LINUX)
++#if defined(Q_OS_ANDROID) || defined(Q_OS_LINUX) || defined(Q_OS_IOS)
+   auto box = new QMessageBox(QMessageBox::Question, tr("fix resource"),
+       tr("help: fix resource"), QMessageBox::Ok | QMessageBox::Cancel);
+   connect(box, &QMessageBox::accepted, box, []() {
+-      QFile::remove("fk_ver"); qApp->exit(); });
++#ifdef Q_OS_IOS
++      QFile::remove(".ios-installed-revision");
++#else
++      QFile::remove("fk_ver");
++#endif
++      qApp->exit(); });
+   connect(box, &QMessageBox::finished, box, &QObject::deleteLater);
+   box->setWindowModality(Qt::NonModal);
+   box->show();
