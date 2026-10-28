@@ -1,0 +1,106 @@
+name: Build FreeKill for iPad
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: freekill-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipad:
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    env:
+      IOS_MIN_VERSION: '16.0'
+      UPSTREAM_COMMIT: '671b0ad698c36b703808d8b29f3483ce54b36631'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout fixed FreeKill source
+        uses: actions/checkout@v4
+        with:
+          repository: Qsgs-Fans/FreeKill
+          ref: ${{ env.UPSTREAM_COMMIT }}
+          path: upstream
+          submodules: recursive
+          persist-credentials: false
+      - name: Prepare tools and apply iOS patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p logs dist
+          python3 -m unittest discover -s tests -v
+          if [[ -d /Applications/Xcode_16.4.app ]]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          fi
+          xcodebuild -version | tee logs/xcode.txt
+          xcrun --sdk iphoneos --show-sdk-version | tee -a logs/xcode.txt
+          command -v cmake >/dev/null || brew install cmake
+          command -v swig >/dev/null || brew install swig
+          git -C upstream apply --check ../ios/freekill-ios.patch
+          git -C upstream apply ../ios/freekill-ios.patch
+          cp -R ios upstream/ios
+      - name: Install matching Qt host tools
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: 'qtmultimedia qt5compat qtshadertools qtimageformats'
+          dir: '${{ runner.temp }}/QtHost'
+          cache: true
+          set-env: false
+      - name: Install Qt for iOS
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: mac
+          target: ios
+          arch: ios
+          modules: 'qtmultimedia qt5compat qtshadertools qtimageformats'
+          dir: '${{ runner.temp }}/QtDevice'
+          cache: true
+          set-env: false
+      - name: Build arm64 iOS dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ios/build-deps.sh "$RUNNER_TEMP/freekill-ios-deps" 2>&1 | tee logs/dependencies.log
+      - name: Build app and package unsigned IPA
+        shell: bash
+        env:
+          QT_IOS_ROOT: '${{ runner.temp }}/QtDevice/Qt/6.8.3/ios'
+          QT_HOST_PATH: '${{ runner.temp }}/QtHost/Qt/6.8.3/macos'
+          FK_IOS_DEPS: '${{ runner.temp }}/freekill-ios-deps/prefix'
+        run: |
+          set -euo pipefail
+          if [[ ! -x "$QT_HOST_PATH/bin/qsb" ]]; then
+            export QT_HOST_PATH="$RUNNER_TEMP/QtHost/Qt/6.8.3/clang_64"
+          fi
+          bash ios/build-app.sh "$PWD/upstream" "$PWD/dist" 2>&1 | tee logs/application.log
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeKill-iPad-unsigned
+          path: |
+            dist/*.ipa
+            dist/*.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FreeKill-iPad-build-logs
+          path: |
+            logs/
+            upstream/build-ios/CMakeCache.txt
+            upstream/build-ios/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: warn
+          retention-days: 14
