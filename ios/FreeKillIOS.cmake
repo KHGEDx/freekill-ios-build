@@ -28,6 +28,8 @@ target_link_libraries(soloud PRIVATE
 
 # The real UI remains on disk for FreeKill's Lua/QML package system. This small
 # module makes its Qt imports visible to the static iOS QML plugin scanner.
+set_source_files_properties("${PROJECT_SOURCE_DIR}/ios/ImportBootstrap.qml" PROPERTIES
+  QT_RESOURCE_ALIAS "ImportBootstrap.qml")
 qt_add_qml_module(FreeKill
   URI FreeKillIOSBootstrap
   VERSION 1.0
