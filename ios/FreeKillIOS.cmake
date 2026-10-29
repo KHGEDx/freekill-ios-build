@@ -3,6 +3,11 @@ if(NOT IOS)
   message(FATAL_ERROR "FreeKillIOS.cmake requires an iOS toolchain")
 endif()
 enable_language(OBJCXX)
+# miniaudio uses AVAudioSession Objective-C calls on iOS.
+set_source_files_properties(
+  "${PROJECT_SOURCE_DIR}/thirdparty/soloud/src/backend/miniaudio/soloud_miniaudio.cpp"
+  TARGET_DIRECTORY soloud PROPERTIES LANGUAGE OBJCXX)
+set_property(TARGET soloud PROPERTY OBJCXX_STANDARD 17)
 set_target_properties(FreeKill PROPERTIES
   MACOSX_BUNDLE TRUE
   MACOSX_BUNDLE_GUI_IDENTIFIER org.freekill.ipad
