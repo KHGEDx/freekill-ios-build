@@ -11,7 +11,7 @@ set_property(TARGET soloud PROPERTY OBJCXX_STANDARD 17)
 set_target_properties(FreeKill PROPERTIES
   MACOSX_BUNDLE TRUE
   MACOSX_BUNDLE_GUI_IDENTIFIER org.freekill.ipad
-  MACOSX_BUNDLE_BUNDLE_VERSION 2
+  MACOSX_BUNDLE_BUNDLE_VERSION 3
   MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
   MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/ios/Info.plist.in"
   XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2"
@@ -20,6 +20,7 @@ set_target_properties(FreeKill PROPERTIES
   XCODE_ATTRIBUTE_ENABLE_BITCODE "NO"
 )
 target_sources(libFreeKill PRIVATE "${PROJECT_SOURCE_DIR}/ios/runtime.mm")
+target_sources(libFreeKill PRIVATE "${PROJECT_SOURCE_DIR}/ios/mark_refresh.cpp")
 set_source_files_properties("${PROJECT_SOURCE_DIR}/ios/runtime.mm" PROPERTIES
   SKIP_PRECOMPILE_HEADERS ON)
 target_include_directories(libFreeKill BEFORE PRIVATE "${FK_IOS_DEPS}/include")
