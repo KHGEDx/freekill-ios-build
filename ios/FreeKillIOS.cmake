@@ -41,6 +41,10 @@ qt_add_qml_module(FreeKill
   QML_FILES "${PROJECT_SOURCE_DIR}/ios/ImportBootstrap.qml"
 )
 target_link_libraries(FreeKill PRIVATE Qt6::Svg)
+# Link and embed the FFmpeg device frameworks shipped with Qt Multimedia.
+# The user signs the complete bundle after downloading the IPA.
+set(QT_NO_FFMPEG_XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
+qt_add_ios_ffmpeg_libraries(FreeKill)
 set_source_files_properties("${PROJECT_SOURCE_DIR}/image/icon.png" PROPERTIES
   MACOSX_PACKAGE_LOCATION ".")
 target_sources(FreeKill PRIVATE "${PROJECT_SOURCE_DIR}/image/icon.png")
