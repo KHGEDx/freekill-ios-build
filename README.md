@@ -2,7 +2,9 @@
 
 目标：iPadOS **16.1.1**；真机 **arm64**；最低部署系统 **16.0**。
 
-**这是尚未经过 macOS 编译和 iPad 真机验证的第一版移植工程，不是已经可安装的 IPA。** 云端首次构建可能失败，需要根据日志继续修正；即使编译成功，也需要在 iPad 上验证能否正常游玩。
+**已完成 macOS/Xcode 云端编译并生成未签名 IPA；尚未经过 iPad 真机运行验证。** 需要使用自己的签名软件签署完整应用包，再安装测试。
+
+2026-10-29 的[第六轮构建已成功](https://github.com/KHGEDx/freekill-ios-build/actions/runs/40798606145)。在该页面的 Artifacts 下载 `FreeKill-iPad-unsigned`，解压后得到 IPA。主程序和 5 个 FFmpeg 框架均已核对为 arm64 真机二进制，最低系统为 16.0；下载文件的摘要已与 GitHub 公布的摘要匹配。
 
 不需要 Mac。本工程使用 GitHub Actions 的 macOS 环境编译，再把未签名 IPA 交给你的签名软件处理。不需要把签名证书或密码上传到仓库。
 
