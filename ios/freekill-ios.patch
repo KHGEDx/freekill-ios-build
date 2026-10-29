@@ -89,7 +89,23 @@
    // 初始化一下各种杂项信息
    QThread::currentThread()->setObjectName("Main");
  
-@@ -474,7 +485,9 @@
+@@ -326,6 +337,15 @@
+ #endif
+ 
+   app = new QApplication(argc, argv);
++#ifdef Q_OS_IOS
++  // QIOSIntegration changes cwd to the app bundle during QApplication creation.
++  // Restore the writable game data directory before any resource/database access.
++  if (!prepareIosData(&iosError)) {
++    std::fprintf(stderr, "FreeKill iOS data directory restore failed: %s\n", qPrintable(iosError));
++    return 1;
++  }
++  qInfo() << "FreeKill iOS data directory after Qt initialization:" << QDir::currentPath();
++#endif
+   app->connect(app, &QCoreApplication::aboutToQuit, cleanUpGlobalStates);
+ #ifdef DESKTOP_BUILD
+   ((QApplication *)app)->setWindowIcon(QIcon("image/icon.png"));
+@@ -474,7 +494,9 @@
    engine->rootContext()->setContextProperty("Debugging", debugging);
  
    QString system;
