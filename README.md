@@ -2,9 +2,9 @@
 
 目标：iPadOS **16.1.1**；真机 **arm64**；最低部署系统 **16.0**。
 
-**已完成 macOS/Xcode 云端编译并生成未签名 IPA；尚未经过 iPad 真机运行验证。** 需要使用自己的签名软件签署完整应用包，再安装测试。
+**最新安装包为构建号 2：已完成云端编译及包体核验，等待设备验证启动结果。**
 
-2026-10-29 的[第六轮构建已成功](https://github.com/KHGEDx/freekill-ios-build/actions/runs/40798606145)。在该页面的 Artifacts 下载 `FreeKill-iPad-unsigned`，解压后得到 IPA。主程序和 5 个 FFmpeg 框架均已核对为 arm64 真机二进制，最低系统为 16.0；下载文件的摘要已与 GitHub 公布的摘要匹配。
+构建号 1 在设备上发现启动时读取数据库初始化文件失败。原因是 Qt iOS 初始化切换工作目录；构建号 2 已在 Qt 初始化后恢复可写数据目录。请使用[第七轮成功构建](https://github.com/KHGEDx/freekill-ios-build/actions/runs/40801679750)中的 `FreeKill-iPad-unsigned` 产物，解压后安装 IPA。主程序和 5 个 FFmpeg 框架均已核对为 arm64 真机二进制，最低系统为 16.0；下载摘要与 GitHub 一致。
 
 不需要 Mac。本工程使用 GitHub Actions 的 macOS 环境编译，再把未签名 IPA 交给你的签名软件处理。不需要把签名证书或密码上传到仓库。
 
