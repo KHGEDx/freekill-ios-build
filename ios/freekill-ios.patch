@@ -105,7 +105,17 @@
    app->connect(app, &QCoreApplication::aboutToQuit, cleanUpGlobalStates);
  #ifdef DESKTOP_BUILD
    ((QApplication *)app)->setWindowIcon(QIcon("image/icon.png"));
-@@ -474,7 +494,9 @@
+@@ -405,6 +425,9 @@
+ 
+   SHOW_SPLASH_MSG("Loading qml files...");
+   engine = new QQmlApplicationEngine;
++#ifdef Q_OS_IOS
++  installIosMarkRefresh(engine);
++#endif
+ 
+ #ifndef Q_OS_ANDROID
+   QQuickStyle::setStyle("Material");
+@@ -474,7 +497,9 @@
    engine->rootContext()->setContextProperty("Debugging", debugging);
  
    QString system;
