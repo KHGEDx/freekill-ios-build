@@ -30,6 +30,7 @@ jobs:
           submodules: recursive
           persist-credentials: false
       - name: Prepare tools and apply iOS patch
+        id: toolchain
         shell: bash
         run: |
           set -euo pipefail
@@ -40,22 +41,13 @@ jobs:
           fi
           xcodebuild -version | tee logs/xcode.txt
           xcrun --sdk iphoneos --show-sdk-version | tee -a logs/xcode.txt
+          toolchain_id=$(shasum -a 256 logs/xcode.txt | cut -d ' ' -f 1)
+          echo "id=$toolchain_id" >> "$GITHUB_OUTPUT"
           command -v cmake >/dev/null || brew install cmake
           command -v swig >/dev/null || brew install swig
           git -C upstream apply --check ../ios/freekill-ios.patch
           git -C upstream apply ../ios/freekill-ios.patch
           cp -R ios upstream/ios
-      - name: Install matching Qt host tools
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.8.3'
-          host: mac
-          target: desktop
-          arch: clang_64
-          modules: 'qtmultimedia qt5compat qtshadertools qtimageformats'
-          dir: '${{ runner.temp }}/QtHost'
-          cache: true
-          set-env: false
       - name: Install Qt for iOS
         uses: jurplel/install-qt-action@v4
         with:
@@ -67,21 +59,34 @@ jobs:
           dir: '${{ runner.temp }}/QtDevice'
           cache: true
           set-env: false
+      - name: Restore iOS static dependencies
+        id: deps-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: '${{ runner.temp }}/freekill-ios-deps/prefix'
+          key: ios-static-${{ steps.toolchain.outputs.id }}-${{ hashFiles('ios/build-deps.sh', 'ios/fetch-deps.py', 'ios/sources.json') }}
       - name: Build arm64 iOS dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
           bash ios/build-deps.sh "$RUNNER_TEMP/freekill-ios-deps" 2>&1 | tee logs/dependencies.log
+      - name: Save iOS static dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: '${{ runner.temp }}/freekill-ios-deps/prefix'
+          key: ios-static-${{ steps.toolchain.outputs.id }}-${{ hashFiles('ios/build-deps.sh', 'ios/fetch-deps.py', 'ios/sources.json') }}
       - name: Build app and package unsigned IPA
         shell: bash
         env:
           QT_IOS_ROOT: '${{ runner.temp }}/QtDevice/Qt/6.8.3/ios'
-          QT_HOST_PATH: '${{ runner.temp }}/QtHost/Qt/6.8.3/macos'
+          QT_HOST_PATH: '${{ runner.temp }}/QtDevice/Qt/6.8.3/macos'
           FK_IOS_DEPS: '${{ runner.temp }}/freekill-ios-deps/prefix'
         run: |
           set -euo pipefail
           if [[ ! -x "$QT_HOST_PATH/bin/qsb" ]]; then
-            export QT_HOST_PATH="$RUNNER_TEMP/QtHost/Qt/6.8.3/clang_64"
+            export QT_HOST_PATH="$RUNNER_TEMP/QtDevice/Qt/6.8.3/clang_64"
           fi
           bash ios/build-app.sh "$PWD/upstream" "$PWD/dist" 2>&1 | tee logs/application.log
       - name: Upload unsigned IPA
