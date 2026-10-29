@@ -59,6 +59,19 @@ jobs:
           dir: '${{ runner.temp }}/QtDevice'
           cache: true
           set-env: false
+      - name: Test mark refresh with Qt 6.8.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_qt="$RUNNER_TEMP/QtDevice/Qt/6.8.3/macos"
+          if [[ ! -x "$host_qt/bin/qmake" ]]; then
+            host_qt="$RUNNER_TEMP/QtDevice/Qt/6.8.3/clang_64"
+          fi
+          mkdir -p "$RUNNER_TEMP/freekill-mark-test"
+          cd "$RUNNER_TEMP/freekill-mark-test"
+          "$host_qt/bin/qmake" "$GITHUB_WORKSPACE/tests/mark-refresh.pro"
+          make -j3
+          ./mark-refresh-test "$GITHUB_WORKSPACE/upstream/LunarLtk/LtkLuaUtil.qml" 2>&1 | tee "$GITHUB_WORKSPACE/logs/mark-refresh.log"
       - name: Restore iOS static dependencies
         id: deps-cache
         uses: actions/cache/restore@v4
