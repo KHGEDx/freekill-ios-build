@@ -1,6 +1,14 @@
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -101,6 +101,10 @@
+@@ -16,7 +16,6 @@
+ if (NOT DEFINED FK_SERVER_ONLY)
+   find_package(Qt6 REQUIRED COMPONENTS
+     Gui
+-    GuiPrivate
+     Qml
+     Quick
+     Widgets
+@@ -101,6 +100,10 @@
  endif ()
  
  add_subdirectory(src)
